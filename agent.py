@@ -77,7 +77,7 @@ def main() -> int:
             post_pr_comment(gh, ctx, pr_number, markdown)
             log.info("posted analysis on %s#%s", repo, pr_number)
             pr_url = f"{os.getenv('GITHUB_SERVER_URL', 'https://github.com')}/{repo}/pull/{pr_number}"
-            write_job_summary(f"✅ Also posted as a PR comment: [{repo}#{pr_number}]({pr_url})\n\n{markdown}")
+            write_job_summary(f"Also posted as a PR comment: [{repo}#{pr_number}]({pr_url})\n\n{markdown}")
             return 0
         except GitHubError as exc:
             write_job_summary(markdown)

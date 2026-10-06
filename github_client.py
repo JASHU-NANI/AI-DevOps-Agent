@@ -35,7 +35,7 @@ class RateLimited(GitHubError):
 
 class GitHubClient:
     def __init__(self, token: str):
-        # GITHUB_API_URL is set automatically inside Actions (also correct for GHES).
+        
         self.api = os.getenv("GITHUB_API_URL", "https://api.github.com").rstrip("/")
         self.session = requests.Session()
         self.session.headers.update({
@@ -45,7 +45,7 @@ class GitHubClient:
             "User-Agent": "ai-devops-agent",
         })
 
-    # ---------- low level ----------
+    
     def _request(self, method: str, path: str, **kwargs) -> requests.Response:
         url = f"{self.api}{path}"
         for attempt in range(1, MAX_RETRIES + 1):

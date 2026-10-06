@@ -57,7 +57,7 @@ def post_pr_comment(client: GitHubClient, ctx: RunContext, pr_number: int, markd
 
 
 def write_job_summary(markdown: str) -> None:
-   
+    
     path = os.getenv("GITHUB_STEP_SUMMARY")
     if path:
         with open(path, "a", encoding="utf-8") as fh:
