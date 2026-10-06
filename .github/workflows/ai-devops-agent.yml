@@ -18,11 +18,11 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read   # only to check out this agent's own code
+  contents: read   
 
 jobs:
   analyze:
-    runs-on: ubuntu-latest   # or: [self-hosted, ai-devops-agent] to run on your laptop
+    runs-on: ubuntu-latest   0
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -36,7 +36,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run agent
-        # inputs go through env, never interpolated into the script (injection-safe)
+
         env:
           TARGET_REPO: ${{ inputs.repository }}
           TARGET_RUN_ID: ${{ inputs.run_id }}
