@@ -1,4 +1,4 @@
-
+"""Gemini-based failure analysis with structured output and graceful fallback."""
 from __future__ import annotations
 
 import json
@@ -10,10 +10,12 @@ from google import genai
 from google.genai import errors, types
 from pydantic import BaseModel, Field
 
-from log_collector import JobLog, redact
+from log_collector import ERROR_HINT, JobLog, redact
 
 log = logging.getLogger("agent.analyzer")
 
+# Verified against https://ai.google.dev/gemini-api/docs/models (stable model code).
+# NOTE: "gemini-3.5-flash lite" (with a space) is NOT a valid model name.
 DEFAULT_MODEL = "gemini-3.5-flash-lite"
 MODEL = os.getenv("GEMINI_MODEL", DEFAULT_MODEL)
 
@@ -39,7 +41,10 @@ class Analysis(BaseModel):
 
 
 def _fallback(job: JobLog, reason: str) -> Analysis:
-    tail = [ln for ln in job.excerpt.splitlines() if ln.strip()][-12:]
+    lines = [ln for ln in job.excerpt.splitlines() if ln.strip() and ln != "..."]
+    # Prefer lines that look like real errors; the raw tail is often just post-job cleanup noise.
+    hits = [ln for ln in lines if ERROR_HINT.search(ln)]
+    tail = hits[:12] or lines[-12:]
     return Analysis(
         failed_job=job.name,
         failed_step=", ".join(job.failed_steps) or "unknown",
