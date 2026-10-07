@@ -1,4 +1,9 @@
+"""
+AI DevOps Agent entrypoint.
 
+Runs inside the CENTRAL repo's workflow, triggered by repository_dispatch.
+Input (env): TARGET_REPO, TARGET_RUN_ID  -> everything else is fetched from the GitHub API.
+"""
 from __future__ import annotations
 
 import logging
@@ -46,8 +51,12 @@ def main() -> int:
     except GitHubError as exc:
         return _report_error(repo, run_id, f"Cannot read run: {exc}")
 
-    if run.get("conclusion") != "failure":
-        log.info("run %s/%s conclusion=%s, nothing to do", repo, run_id, run.get("conclusion"))
+    # conclusion is None while the run is still in progress (inline use inside the
+    # same workflow). Only skip when the run has finished with a non-failure result.
+    conclusion = run.get("conclusion")
+    in_progress = conclusion is None
+    if not in_progress and conclusion != "failure":
+        log.info("run %s/%s conclusion=%s, nothing to do", repo, run_id, conclusion)
         return 0
 
     ctx = RunContext(repo=repo, run_id=run_id, workflow=run.get("name", "?"),
@@ -58,6 +67,10 @@ def main() -> int:
         job_logs, total_failed = collect_failed_job_logs(gh, repo, run_id)
     except GitHubError as exc:
         return _report_error(repo, run_id, f"Cannot fetch job logs: {exc}")
+
+    if in_progress and not job_logs:
+        log.info("run %s/%s still in progress with no failed jobs, nothing to do", repo, run_id)
+        return 0
 
     if job_logs:
         analyses = [analyze_job(j, repo, ctx.workflow, ctx.branch) for j in job_logs]
@@ -77,7 +90,7 @@ def main() -> int:
             post_pr_comment(gh, ctx, pr_number, markdown)
             log.info("posted analysis on %s#%s", repo, pr_number)
             pr_url = f"{os.getenv('GITHUB_SERVER_URL', 'https://github.com')}/{repo}/pull/{pr_number}"
-            write_job_summary(f"Also posted as a PR comment: [{repo}#{pr_number}]({pr_url})\n\n{markdown}")
+            write_job_summary(f"✅ Also posted as a PR comment: [{repo}#{pr_number}]({pr_url})\n\n{markdown}")
             return 0
         except GitHubError as exc:
             write_job_summary(markdown)

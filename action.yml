@@ -1,0 +1,37 @@
+name: AI DevOps Agent
+description: Analyze a failed workflow run with Gemini and post the result as a PR comment and Job Summary
+
+inputs:
+  repository:
+    description: "Failed repo (owner/name)"
+    required: true
+  run_id:
+    description: "Failed workflow run ID"
+    required: true
+  github_token:
+    description: "Token with actions:read and pull-requests:write on the failed repo"
+    required: true
+  gemini_api_key:
+    description: "Gemini API key"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install dependencies
+      shell: bash
+      run: pip install -r "${{ github.action_path }}/requirements.txt"
+
+    - name: Run agent
+      shell: bash
+      # inputs go through env, never interpolated into the script
+      env:
+        TARGET_REPO: ${{ inputs.repository }}
+        TARGET_RUN_ID: ${{ inputs.run_id }}
+        AGENT_GITHUB_TOKEN: ${{ inputs.github_token }}
+        GEMINI_API_KEY: ${{ inputs.gemini_api_key }}
+      run: python "${{ github.action_path }}/agent.py"
