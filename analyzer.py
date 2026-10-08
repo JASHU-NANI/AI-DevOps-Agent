@@ -68,9 +68,6 @@ SYSTEM = (
 
     "Copy CI evidence lines VERBATIM from the log. "
 
-    "For source evidence, quote only the relevant source-code lines that "
-    "directly support the diagnosis. Include the file name and line context. "
-
     "source_analysis must explain how the source code confirms or explains "
     "the CI failure. "
 
@@ -81,7 +78,7 @@ SYSTEM = (
     "later-phase errors (undefined symbols, missing imports, type mismatches). "
     "When the log shows only syntax/parse errors, inspect the source for such "
     "hidden errors and list them ONLY in likely_followup_errors, never in "
-    "evidence or source_evidence. "
+    "evidence. "
     "Source files are shown with line numbers in the form '  14 | code'. "
     "The prefix is not part of the code. Always use these printed line numbers "
     "and never count lines yourself. "
@@ -114,14 +111,6 @@ class Analysis(BaseModel):
 
     evidence: list[str] = Field(
         description="3-8 verbatim CI log lines supporting the failure"
-    )
-
-    source_evidence: list[str] = Field(
-        description=(
-            "0-8 relevant source-code lines or snippets from the provided "
-            "source files that directly support the diagnosis. "
-            "Include file name and line context when possible."
-        )
     )
 
     source_analysis: str = Field(
@@ -175,7 +164,6 @@ def _fallback(job: JobLog, reason: str) -> Analysis:
             "Open the failed job log and review the evidence."
         ),
         evidence=evidence,
-        source_evidence=[],
         source_analysis=(
             "Source-code analysis was unavailable because automated "
             "analysis did not complete."
@@ -202,24 +190,9 @@ def _normalize(a: Analysis, job: JobLog) -> Analysis:
     )
 
     # Redact before publishing.
-    a.evidence = [
-        redact(e)
-        for e in a.evidence
-    ]
-
-    a.source_evidence = [
-        redact(e)
-        for e in a.source_evidence
-    ]
-
-    a.source_analysis = redact(
-        a.source_analysis
-    )
-
-    a.likely_followup_errors = [
-        redact(e)
-        for e in a.likely_followup_errors
-    ]
+    a.evidence = [redact(e) for e in a.evidence]
+    a.source_analysis = redact(a.source_analysis)
+    a.likely_followup_errors = [redact(e) for e in a.likely_followup_errors]
 
     return a
 
@@ -283,19 +256,12 @@ def _build_prompt(
         "Inspect the provided source files from the failed commit. "
         "Find the exact source code that caused or explains the failure.\n\n"
 
-        "STEP 3 - SOURCE EVIDENCE:\n"
-        "Put the relevant source-code snippets in source_evidence. "
-        "Include the file name and useful line context. "
-        "Do not invent source lines. "
-        "Do not include the '  14 | ' line-number prefix inside the snippet "
-        "text; write it as 'File.java:14: code'.\n\n"
-
-        "STEP 4 - SOURCE ANALYSIS:\n"
+        "STEP 3 - SOURCE ANALYSIS:\n"
         "Explain how the source code confirms or explains the CI failure. "
         "If the source reveals an additional issue directly related to the "
         "failure, mention it.\n\n"
 
-        "STEP 5 - LIKELY FOLLOW-UP ERRORS:\n"
+        "STEP 4 - LIKELY FOLLOW-UP ERRORS:\n"
         "If the log contains only syntax/parse errors, scan the numbered "
         "source for errors the compiler has not reached yet (missing imports, "
         "undeclared variables, type mismatches). For each one, use the line "
@@ -318,38 +284,19 @@ def analyze_job(
 ) -> Analysis:
 
     if not job.logs_available:
-        return _fallback(
-            job,
-            "logs expired or not accessible",
-        )
+        return _fallback(job, "logs expired or not accessible")
 
     if not job.excerpt.strip():
-        return _fallback(
-            job,
-            "log was empty",
-        )
+        return _fallback(job, "log was empty")
 
     api_key = os.getenv("GEMINI_API_KEY")
 
     if not api_key:
-        return _fallback(
-            job,
-            "GEMINI_API_KEY not configured",
-        )
+        return _fallback(job, "GEMINI_API_KEY not configured")
 
-    source_files = source_files or []
+    prompt = _build_prompt(job, repo, workflow, branch, source_files or [])
 
-    prompt = _build_prompt(
-        job,
-        repo,
-        workflow,
-        branch,
-        source_files,
-    )
-
-    client = genai.Client(
-        api_key=api_key
-    )
+    client = genai.Client(api_key=api_key)
 
     config = types.GenerateContentConfig(
         system_instruction=SYSTEM,
@@ -372,47 +319,22 @@ def analyze_job(
                 else Analysis(**json.loads(resp.text))
             )
 
-            return _normalize(
-                parsed,
-                job,
-            )
+            return _normalize(parsed, job)
 
         except errors.APIError as exc:
-            code = getattr(
-                exc,
-                "code",
-                None,
-            )
+            code = getattr(exc, "code", None)
 
-            log.warning(
-                "Gemini API error %s (attempt %s)",
-                code,
-                attempt,
-            )
+            log.warning("Gemini API error %s (attempt %s)", code, attempt)
 
             if code in RETRYABLE and attempt < MAX_ATTEMPTS:
-                time.sleep(
-                    2 ** attempt * 2
-                )
+                time.sleep(2 ** attempt * 2)
                 continue
 
-            return _fallback(
-                job,
-                f"Gemini API error {code}",
-            )
+            return _fallback(job, f"Gemini API error {code}")
 
         except Exception as exc:
-            log.warning(
-                "analysis failed: %s",
-                type(exc).__name__,
-            )
+            log.warning("analysis failed: %s", type(exc).__name__)
 
-            return _fallback(
-                job,
-                type(exc).__name__,
-            )
+            return _fallback(job, type(exc).__name__)
 
-    return _fallback(
-        job,
-        "Gemini retries exhausted",
-    )
+    return _fallback(job, "Gemini retries exhausted")
