@@ -13,6 +13,11 @@ TIMESTAMP = re.compile(
     r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z "
 )
 
+ERROR_HINT = re.compile(
+    r"##\[error\]|\berror\b|\bfailed\b|\bexception\b|\bfatal\b|traceback|exit code [1-9]",
+    re.I
+)
+
 SECRET_PATTERNS = [
     re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"),
     re.compile(r"github_pat_[A-Za-z0-9_]{20,}"),
@@ -58,7 +63,7 @@ def collect_failed_job_logs(
     failed = client.list_failed_jobs(repo, run_id)
 
     results: list[JobLog] = []
-
+ 
     for job in failed[:MAX_JOBS]:
         steps = [
             s["name"]
