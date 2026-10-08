@@ -10,7 +10,7 @@ MAX_JOBS = 5            # analyze at most this many failed jobs per run
 MAX_EXCERPT_CHARS = 65_000
 TAIL_LINES = 120
 WINDOW = 12             # lines of context around an error hit
-MAX_HITS = 5
+
 
 ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 TIMESTAMP = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z ")
