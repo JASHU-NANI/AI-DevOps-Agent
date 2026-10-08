@@ -75,8 +75,16 @@ SYSTEM = (
     "the CI failure. "
 
     "Use confidence 'high' only when the log or source code clearly supports "
-    "the conclusion. If evidence is insufficient, use confidence 'low'."
+    "the conclusion. If evidence is insufficient, use confidence 'low'. "
+
+    "Compilers like javac stop after syntax errors and do not report "
+    "later-phase errors (undefined symbols, missing imports, type mismatches). "
+    "When the log shows only syntax/parse errors, inspect the source for such "
+    "hidden errors and list them ONLY in likely_followup_errors, never in "
+    "evidence or source_evidence. Only include issues you can point to in the "
+    "provided source; otherwise return an empty list."
 )
+
 
 class Analysis(BaseModel):
     failed_job: str
@@ -118,6 +126,15 @@ class Analysis(BaseModel):
         )
     )
 
+    likely_followup_errors: list[str] = Field(
+        description=(
+            "0-8 issues visible in the provided source that the compiler has "
+            "NOT yet reported, such as undefined symbols, missing imports or "
+            "type mismatches hidden behind syntax errors. Format: "
+            "'File.java:LINE: description'. Empty list if none."
+        )
+    )
+
 
 def _fallback(job: JobLog, reason: str) -> Analysis:
     lines = [
@@ -156,6 +173,7 @@ def _fallback(job: JobLog, reason: str) -> Analysis:
             "Source-code analysis was unavailable because automated "
             "analysis did not complete."
         ),
+        likely_followup_errors=[],
     )
 
 
@@ -191,7 +209,13 @@ def _normalize(a: Analysis, job: JobLog) -> Analysis:
         a.source_analysis
     )
 
+    a.likely_followup_errors = [
+        redact(e)
+        for e in a.likely_followup_errors
+    ]
+
     return a
+
 
 def _build_source_context(source_files) -> str:
 
@@ -253,6 +277,12 @@ def _build_prompt(
         "Explain how the source code confirms or explains the CI failure. "
         "If the source reveals an additional issue directly related to the "
         "failure, mention it.\n\n"
+
+        "STEP 5 - LIKELY FOLLOW-UP ERRORS:\n"
+        "If the log contains only syntax/parse errors, scan the source for "
+        "errors the compiler has not reached yet (missing imports, undeclared "
+        "variables, type mismatches). List them in likely_followup_errors as "
+        "'File:LINE: description'. Do not repeat errors already in the log.\n\n"
 
         "Do not report unrelated code-quality issues as root causes.\n"
         "Do not invent errors that are not supported by the log or source.\n"

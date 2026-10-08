@@ -77,11 +77,17 @@ def build_markdown(
         # SOURCE ANALYSIS
 
         if a.source_analysis:
-
             parts += [
                 "",
                 "**Source Analysis:**",
                 a.source_analysis,
+            ]
+
+        if a.likely_followup_errors:
+            parts += [
+                "",
+                "**Likely follow-up errors (not yet reported by the compiler):**",
+                *[f"- {e}" for e in a.likely_followup_errors],
             ]
 
     if total_failed > len(analyses):
