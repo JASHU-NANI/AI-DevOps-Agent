@@ -81,8 +81,14 @@ SYSTEM = (
     "later-phase errors (undefined symbols, missing imports, type mismatches). "
     "When the log shows only syntax/parse errors, inspect the source for such "
     "hidden errors and list them ONLY in likely_followup_errors, never in "
-    "evidence or source_evidence. Only include issues you can point to in the "
-    "provided source; otherwise return an empty list."
+    "evidence or source_evidence. "
+    "Source files are shown with line numbers in the form '  14 | code'. "
+    "The prefix is not part of the code. Always use these printed line numbers "
+    "and never count lines yourself. "
+    "Before reporting a missing import, check the import lines actually "
+    "present; never report an import that exists. "
+    "Report an issue only if you can name the exact symbol or expression "
+    "involved and point to its line; otherwise return an empty list."
 )
 
 
@@ -128,10 +134,11 @@ class Analysis(BaseModel):
 
     likely_followup_errors: list[str] = Field(
         description=(
-            "0-8 issues visible in the provided source that the compiler has "
-            "NOT yet reported, such as undefined symbols, missing imports or "
-            "type mismatches hidden behind syntax errors. Format: "
-            "'File.java:LINE: description'. Empty list if none."
+            "0-8 issues in the provided source that the compiler has NOT yet "
+            "reported. Format exactly: 'File.java:LINE: <what is wrong, naming "
+            "the exact symbol or type>'. Example: 'Hello.java:20: variable "
+            "username is used but never declared'. Do NOT copy javac message "
+            "style. Empty list if none."
         )
     )
 
@@ -217,6 +224,14 @@ def _normalize(a: Analysis, job: JobLog) -> Analysis:
     return a
 
 
+def _number_lines(text: str) -> str:
+    """Prefix each line with its real line number so the model never counts."""
+    return "\n".join(
+        f"{i:>4} | {line}"
+        for i, line in enumerate(text.splitlines(), 1)
+    )
+
+
 def _build_source_context(source_files) -> str:
 
     if not source_files:
@@ -225,7 +240,7 @@ def _build_source_context(source_files) -> str:
     return "\n\n".join(
         f"### FILE: {f.path}\n"
         f"```text\n"
-        f"{redact(f.content)}\n"
+        f"{_number_lines(redact(f.content))}\n"
         f"```"
         for f in source_files
     )
@@ -271,7 +286,9 @@ def _build_prompt(
         "STEP 3 - SOURCE EVIDENCE:\n"
         "Put the relevant source-code snippets in source_evidence. "
         "Include the file name and useful line context. "
-        "Do not invent source lines.\n\n"
+        "Do not invent source lines. "
+        "Do not include the '  14 | ' line-number prefix inside the snippet "
+        "text; write it as 'File.java:14: code'.\n\n"
 
         "STEP 4 - SOURCE ANALYSIS:\n"
         "Explain how the source code confirms or explains the CI failure. "
@@ -279,10 +296,13 @@ def _build_prompt(
         "failure, mention it.\n\n"
 
         "STEP 5 - LIKELY FOLLOW-UP ERRORS:\n"
-        "If the log contains only syntax/parse errors, scan the source for "
-        "errors the compiler has not reached yet (missing imports, undeclared "
-        "variables, type mismatches). List them in likely_followup_errors as "
-        "'File:LINE: description'. Do not repeat errors already in the log.\n\n"
+        "If the log contains only syntax/parse errors, scan the numbered "
+        "source for errors the compiler has not reached yet (missing imports, "
+        "undeclared variables, type mismatches). For each one, use the line "
+        "number printed in the source listing and name the exact symbol, e.g. "
+        "'Hello.java:7: ArrayList is used but not imported'. "
+        "Do not repeat errors already in the log and do not report imports "
+        "that are already present.\n\n"
 
         "Do not report unrelated code-quality issues as root causes.\n"
         "Do not invent errors that are not supported by the log or source.\n"
