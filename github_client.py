@@ -16,22 +16,17 @@ MAX_WAIT_SECONDS = 90
 class GitHubError(Exception):
     pass
 
-
 class AuthError(GitHubError):
     pass
-
 
 class PermissionDenied(GitHubError):
     pass
 
-
 class NotFound(GitHubError):
     pass
 
-
 class RateLimited(GitHubError):
     pass
-
 
 class GitHubClient:
     def __init__(self, token: str):
