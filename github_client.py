@@ -132,7 +132,29 @@ class GitHubClient:
             return self._request("GET", f"/repos/{repo}/actions/jobs/{job_id}/logs").text
         except NotFound:
             return None
+        # ---------- repository source ----------
+    def get_file_content(self, repo: str, path: str, ref: str) -> str | None:
+        import base64
 
+        try:
+            data = self._request(
+                "GET",
+                f"/repos/{repo}/contents/{path}",
+                params={"ref": ref},
+            ).json()
+
+            if data.get("type") != "file":
+                return None
+
+            content = data.get("content", "")
+            if not content:
+                return None
+
+            return base64.b64decode(content).decode("utf-8", errors="replace")
+
+        except NotFound:
+            return None
+        
     # ---------- pull requests ----------
     def find_pr_number(self, repo: str, run: dict) -> int | None:
         prs = run.get("pull_requests") or []
