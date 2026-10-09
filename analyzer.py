@@ -14,6 +14,7 @@ from log_collector import ERROR_HINT, JobLog, redact
 log = logging.getLogger("agent.analyzer")
 
 MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+
 MAX_ATTEMPTS = 3
 RETRYABLE = {429, 500, 503, 504}
 

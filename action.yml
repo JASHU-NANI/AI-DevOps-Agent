@@ -1,3 +1,5 @@
+# Lives at the ROOT of the central AI-DevOps-Agent repo.
+# Client repos call it with:  uses: JASHU-NANI/AI-DevOps-Agent@main
 name: AI DevOps Agent
 description: Analyze a failed workflow run with Gemini and post the result as a PR comment and Job Summary
 
@@ -9,8 +11,9 @@ inputs:
     description: "Failed workflow run ID"
     required: true
   github_token:
-    description: "Token with actions:read and pull-requests:write on the failed repo"
-    required: true
+    description: "Token with actions:read and pull-requests:write on the failed repo (defaults to the workflow's built-in GITHUB_TOKEN)"
+    required: false
+    default: ${{ github.token }}
   gemini_api_key:
     description: "Gemini API key"
     required: true

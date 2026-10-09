@@ -1,5 +1,3 @@
-"""Collect relevant source files from the exact failed commit."""
-
 from __future__ import annotations
 
 import os
@@ -13,7 +11,6 @@ MAX_FILES = 8
 MAX_FILE_CHARS = 20_000
 MAX_TOTAL_CHARS = 80_000
 
-# Files that are especially useful for CI/build failures.
 IMPORTANT_FILES = {
     ".java",
     ".py",
@@ -44,11 +41,10 @@ def _extract_paths_from_logs(logs: str) -> list[str]:
     candidates = set()
 
     patterns = [
-        # Linux/Windows-ish source paths
+        #using regex pattern to find the files 
         r"(?:^|[\s:(])([A-Za-z0-9_.\-/\\]+\.(?:java|py|js|ts|tsx|jsx|xml|yml|yaml|json|properties|gradle|kts|sql|sh))(?:[:)\s]|$)",
 
-        # Java compiler style:
-        # src/main/java/com/example/App.java:[10,5]
+        #source file path
         r"([A-Za-z0-9_.\-/\\]+\.java):\[\d+,\d+\]",
 
         # Maven/Gradle paths

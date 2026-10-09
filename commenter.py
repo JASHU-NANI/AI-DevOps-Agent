@@ -33,7 +33,7 @@ def _find_lines(index: dict[str, list[str]], name: str) -> list[str] | None:
     return None
 
 def _evidence_block(evidence: list[str], source_files) -> str:
-    """Each CI error line, followed by the real source line it points to."""
+    """each ci error line, followed by the real source line it points to."""
     index = {f.path: f.content.splitlines() for f in source_files or []}
     out: list[str] = []
 
