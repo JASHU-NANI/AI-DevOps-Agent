@@ -31,7 +31,7 @@ runs:
 
     - name: Run agent
       shell: bash
-      # inputs go through env, never interpolated into the script
+      
       env:
         TARGET_REPO: ${{ inputs.repository }}
         TARGET_RUN_ID: ${{ inputs.run_id }}

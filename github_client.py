@@ -1,4 +1,4 @@
-"""Thin GitHub REST client: retries, rate-limit handling, clear errors, no secret leakage."""
+
 from __future__ import annotations
 
 import logging
@@ -38,12 +38,12 @@ class GitHubClient:
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": os.getenv("GITHUB_API_VERSION", "2022-11-28"),
             "User-Agent": "ai-devops-agent",
-        })
+        }) #this method helps us setup api session, authentication and api url
 
     
     def _request(self, method: str, path: str, **kwargs) -> requests.Response:
         url = f"{self.api}{path}"
-        for attempt in range(1, MAX_RETRIES + 1):
+        for attempt in range(1, MAX_RETRIES + 1): #send api requests, retries with max limit and raise exceptions
             try:
                 resp = self.session.request(method, url, timeout=30, **kwargs)
             except requests.RequestException as exc:
@@ -108,7 +108,7 @@ class GitHubClient:
         return self._request("GET", f"/repos/{repo}/actions/runs/{run_id}").json()
 
     def list_failed_jobs(self, repo: str, run_id: str) -> list[dict]:
-        """All failed jobs of the latest attempt (a run can have several)."""
+        #All failed jobs of the latest attempt (a run can have several.
         jobs, page = [], 1
         while True:
             data = self._request(
@@ -122,7 +122,7 @@ class GitHubClient:
         return [j for j in jobs if j.get("conclusion") in ("failure", "timed_out")]
 
     def get_job_logs(self, repo: str, job_id: int) -> str | None:
-        """Plain-text log of one job. None if expired/missing."""
+        #text log of one job. if none expired/missing.
         try:
             return self._request("GET", f"/repos/{repo}/actions/jobs/{job_id}/logs").text
         except NotFound:

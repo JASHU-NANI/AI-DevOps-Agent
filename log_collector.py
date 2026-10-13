@@ -16,7 +16,7 @@ TIMESTAMP = re.compile(
 ERROR_HINT = re.compile(
     r"##\[error\]|\berror\b|\bfailed\b|\bexception\b|\bfatal\b|traceback|exit code [1-9]",
     re.I
-)
+)#used by falback analysis
 
 SECRET_PATTERNS = [
     re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"),
@@ -29,11 +29,11 @@ SECRET_PATTERNS = [
 def redact(text: str) -> str:
     for pattern in SECRET_PATTERNS:
         text = pattern.sub("***REDACTED***", text)
-    return text
+    return text  #helps us to replace the matching patterns with redacted.
 
 
 @dataclass
-class JobLog:
+class JobLog:  #this data class stores the job name, id, url ...in it.
     name: str
     job_id: int
     url: str
@@ -42,13 +42,15 @@ class JobLog:
     logs_available: bool = True
 
 
+
+#this is not just storing the error lines. it keeps complete job log
 def _excerpt(raw: str) -> str:
     lines = [
         TIMESTAMP.sub("", ANSI.sub("", ln))
         for ln in raw.splitlines()
     ]
 
-    # Keep the complete log.
+    #remove formatting and time then redact matching secrets
     return redact("\n".join(lines))
 
 
@@ -58,7 +60,7 @@ def collect_failed_job_logs(
     run_id: str
 ) -> tuple[list[JobLog], int]:
 
-    """Returns (job logs, total number of failed jobs)."""
+    #Returns (job logs, total number of failed jobs.
 
     failed = client.list_failed_jobs(repo, run_id)
 

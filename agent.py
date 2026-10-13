@@ -17,8 +17,8 @@ logging.basicConfig(
 )
 log = logging.getLogger("agent")
 
-REPO_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
-SHA_RE = re.compile(r"[0-9a-fA-F]{40}")
+REPO_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$") #checks the repo name format 
+SHA_RE = re.compile(r"[0-9a-fA-F]{40}") #checks the commit sha
 
 
 def _env(name: str) -> str:
@@ -33,11 +33,11 @@ def _report_error(repo: str, run_id: str, message: str) -> int:
     write_job_summary(
         f"##AI DevOps Agent: could not analyze `{repo}` run `{run_id}`\n\n{message}"
     )
-    return 1
+    return 1 # helps to write an error in summmary and exits with code 1
 
 
 def _collect_source(gh, repo, ctx, job_logs):
-    """Best-effort source collection; never fails the analysis."""
+    #best-effort source collection; never fails the analysis.
     if not (job_logs and SHA_RE.fullmatch(ctx.sha)):
         log.info("Skipping source collection: no valid commit SHA.")
         return []

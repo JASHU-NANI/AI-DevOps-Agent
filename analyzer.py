@@ -134,6 +134,7 @@ class Analysis(BaseModel):
 
 
 def _fallback(job: JobLog, reason: str) -> Analysis:
+    #creates a basic low confidence report from available logs if ai analysis cannot complete
     lines = [
         ln
         for ln in job.excerpt.splitlines()
@@ -174,9 +175,10 @@ def _fallback(job: JobLog, reason: str) -> Analysis:
 
 
 def _normalize(a: Analysis, job: JobLog) -> Analysis:
+    #fills missing job details and redacts evidences.
     if a.category not in CATEGORIES:
         a.category = "unknown"
-
+    
     a.confidence = a.confidence.lower()
 
     if a.confidence not in CONFIDENCES:
@@ -199,7 +201,7 @@ def _normalize(a: Analysis, job: JobLog) -> Analysis:
 
 
 def _number_lines(text: str) -> str:
-    """Prefix each line with its real line number so the model never counts."""
+    #adds linenumbers to source code so gemini can refer exact no.of lines
     return "\n".join(
         f"{i:>4} | {line}"
         for i, line in enumerate(text.splitlines(), 1)
@@ -219,7 +221,7 @@ def _build_source_context(source_files) -> str:
         for f in source_files
     )
 
-
+#all instructions in one prompt 
 def _build_prompt(
     job: JobLog,
     repo: str,
@@ -275,7 +277,7 @@ def _build_prompt(
         "Do not invent errors that are not supported by the log or source.\n"
     )
 
-
+#calls gemini parses the structures response and return an analysis
 def analyze_job(
     job: JobLog,
     repo: str,

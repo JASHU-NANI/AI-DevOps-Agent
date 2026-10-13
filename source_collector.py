@@ -36,7 +36,7 @@ class SourceFile:
     content: str
 
 
-def _extract_paths_from_logs(logs: str) -> list[str]:
+def _extract_paths_from_logs(logs: str) -> list[str]: #finds the file path and normalize it using regex
 
     candidates = set()
 
@@ -73,10 +73,10 @@ def _looks_like_source_file(path: str) -> bool:
 
     if any(lower.endswith(ext) for ext in IMPORTANT_FILES):
         return True
-
+    #checking if any file has configuration file extension 
     return False
 
-
+#from candidate paths, limits tthe list, fetches the files at the failed commit
 def collect_relevant_source(
     client: GitHubClient,
     repo: str,

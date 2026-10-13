@@ -25,15 +25,17 @@ def _fence(lines: list[str]) -> str:
     body = "\n".join(lines).replace("```", "'''")
     return f"```text\n{body}\n```"
 
+#all the methods in commentor.py helps us to format the response 
+
 def _find_lines(index: dict[str, list[str]], name: str) -> list[str] | None:
-    """Match a log path (relative or absolute) to a collected source file."""
+    #match a log path (relative or absolute) to a collected source file
     for path, lines in index.items():
         if name == path or name.endswith("/" + path) or path.endswith("/" + name):
             return lines
     return None
 
 def _evidence_block(evidence: list[str], source_files) -> str:
-    """each ci error line, followed by the real source line it points to."""
+    #each ci error line, followed by the real source line it points to
     index = {f.path: f.content.splitlines() for f in source_files or []}
     out: list[str] = []
 
@@ -50,6 +52,7 @@ def _evidence_block(evidence: list[str], source_files) -> str:
 
     return _fence(out)
 
+#builds the full report for all analyzed jobs
 def build_markdown(
     ctx: RunContext,
     analyses: list[Analysis],
