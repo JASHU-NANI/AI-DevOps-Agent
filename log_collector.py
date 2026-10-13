@@ -1,5 +1,5 @@
-from guardrails import redact
 from __future__ import annotations
+from guardrails import redact
 
 import re
 from dataclasses import dataclass, field
