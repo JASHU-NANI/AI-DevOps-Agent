@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+from guardrails import sanitize_for_ai
 import os
 import re
 from dataclasses import dataclass
@@ -101,7 +101,8 @@ def collect_relevant_source(
 
         if not content:
             continue
-
+        
+        content = sanitize_for_ai(content)    
         content = content[:MAX_FILE_CHARS]
 
         if total_chars + len(content) > MAX_TOTAL_CHARS:

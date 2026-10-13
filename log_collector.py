@@ -1,4 +1,4 @@
-
+from guardrails import redact
 from __future__ import annotations
 
 import re
@@ -17,20 +17,6 @@ ERROR_HINT = re.compile(
     r"##\[error\]|\berror\b|\bfailed\b|\bexception\b|\bfatal\b|traceback|exit code [1-9]",
     re.I
 )#used by falback analysis
-
-SECRET_PATTERNS = [
-    re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"),
-    re.compile(r"github_pat_[A-Za-z0-9_]{20,}"),
-    re.compile(r"AIza[0-9A-Za-z_-]{30,}"),
-    re.compile(r"(?i)bearer\s+[A-Za-z0-9._-]{20,}"),
-]
-
-
-def redact(text: str) -> str:
-    for pattern in SECRET_PATTERNS:
-        text = pattern.sub("***REDACTED***", text)
-    return text  #helps us to replace the matching patterns with redacted.
-
 
 @dataclass
 class JobLog:  #this data class stores the job name, id, url ...in it.
